@@ -3,6 +3,7 @@ package org.chabernac.maven.repository;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.maven.artifact.repository.metadata.Metadata;
 import org.apache.maven.model.Model;
 import org.chabernac.dependency.GAV;
 
@@ -27,5 +28,10 @@ public class LocalInMemoryRepository implements IRepository {
     @Override
     public boolean isWritable() {
         return true;
+    }
+
+    @Override
+    public Optional<Metadata> getMetaData(String groupId, String artifactId) {
+        throw new UnsupportedOperationException("get metadata is not supported in LocalInMemoryRepository");
     }
 }

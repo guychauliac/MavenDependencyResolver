@@ -7,61 +7,65 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.maven.artifact.repository.metadata.Metadata;
 import org.apache.maven.model.Model;
 import org.chabernac.dependency.GAV;
 import org.chabernac.dependency.GetMavenRepoURL;
+import org.chabernac.dependency.GetVersionsURL;
 import org.chabernac.dependency.IModelIO;
 import org.chabernac.dependency.ModelIO;
 
 public class FileCachingRepository implements IRepository {
-    private static final Logger         LOGGER = LogManager.getLogger( FileCachingRepository.class );
+    private static final Logger LOGGER = LogManager.getLogger(FileCachingRepository.class);
 
-    private final IRepository           repository;
+    private final IRepository repository;
     private final Function<GAV, String> getMavenRepoPath;
-    private final IModelIO              modelIO;
+    private final BiFunction<String, String, String> getMavenMetaRepoPath;
+    private final IModelIO modelIO;
 
-    public FileCachingRepository( Path basePath,
-                                  IRepository repository ) {
-        this( repository, basePath, new ModelIO() );
+    public FileCachingRepository(Path basePath,
+            IRepository repository) {
+        this(repository, basePath, new ModelIO());
     }
 
-    FileCachingRepository( IRepository repository,
-                           Path basePath,
-                           IModelIO modelIO ) {
+    FileCachingRepository(IRepository repository,
+            Path basePath,
+            IModelIO modelIO) {
         super();
         this.repository = repository;
-        this.getMavenRepoPath = new GetMavenRepoURL( basePath.toString() );
+        this.getMavenRepoPath = new GetMavenRepoURL(basePath.toString());
+        this.getMavenMetaRepoPath = new GetVersionsURL(basePath.toString());
         this.modelIO = modelIO;
     }
 
     @Override
-    public Optional<Model> readPom( GAV gav ) {
-        Path path = Paths.get( getMavenRepoPath.apply( gav ) );
+    public Optional<Model> readPom(GAV gav) {
+        Path path = Paths.get(getMavenRepoPath.apply(gav));
         try {
-            if ( Files.exists( path ) ) {
-                LOGGER.trace( "Reading pom from '{}'", path.toFile() );
-                try (FileInputStream input = new FileInputStream( path.toFile() )) {
-                    return Optional.of( modelIO.getModelFromInputStream( input ) );
+            if (Files.exists(path)) {
+                LOGGER.trace("Reading pom from '{}'", path.toFile());
+                try (FileInputStream input = new FileInputStream(path.toFile())) {
+                    return Optional.of(modelIO.getModelFromInputStream(input));
                 }
             }
 
-            Optional<Model> modelOptional = repository.readPom( gav );
+            Optional<Model> modelOptional = repository.readPom(gav);
 
-            if ( modelOptional.isPresent() ) {
-                Files.createDirectories( path.getParent() );
-                LOGGER.trace( "Writing pom from '{}'", path.toFile() );
-                try (FileOutputStream output = new FileOutputStream( path.toFile() )) {
-                    modelIO.writeModelToStream( modelOptional.get(), output );
+            if (modelOptional.isPresent()) {
+                Files.createDirectories(path.getParent());
+                LOGGER.trace("Writing pom from '{}'", path.toFile());
+                try (FileOutputStream output = new FileOutputStream(path.toFile())) {
+                    modelIO.writeModelToStream(modelOptional.get(), output);
                 }
             }
 
             return modelOptional;
-        } catch ( IOException e ) {
-            throw new RepositoryException( "Could not read/write to path: '" + path + "'", e );
+        } catch (IOException e) {
+            throw new RepositoryException("Could not read/write to path: '" + path + "'", e);
         }
 
     }
@@ -72,8 +76,36 @@ public class FileCachingRepository implements IRepository {
     }
 
     @Override
-    public GAV store( Model model ) {
-        throw new UnsupportedOperationException( "Store not supported in this repository" );
+    public GAV store(Model model) {
+        throw new UnsupportedOperationException("Store not supported in this repository");
     }
+
+    @Override
+    public Optional<Metadata> getMetaData(String groupId, String artifactId) {
+        Path path = Paths.get(getMavenMetaRepoPath.apply(groupId, artifactId));
+        try {
+            if (Files.exists(path)) {
+                LOGGER.trace("Reading metadata from '{}'", path.toFile());
+                try (FileInputStream input = new FileInputStream(path.toFile())) {
+                    return Optional.of(modelIO.getMetaDataFromString(input));
+                }
+            }
+
+            Optional<Metadata> metaOptional = repository.getMetaData(groupId, artifactId);
+
+            if (metaOptional.isPresent()) {
+                Files.createDirectories(path.getParent());
+                LOGGER.trace("Writing metadata from '{}'", path.toFile());
+                try (FileOutputStream output = new FileOutputStream(path.toFile())) {
+                    modelIO.writeMetadataToStream(metaOptional.get(), output);
+                }
+            }
+
+            return metaOptional;
+        } catch (IOException e) {
+            throw new RepositoryException("Could not read/write to path: '" + path + "'", e);
+        }
+    }
+
 
 }

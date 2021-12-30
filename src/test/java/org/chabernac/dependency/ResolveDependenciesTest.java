@@ -4,7 +4,8 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
+import org.apache.maven.artifact.versioning.InvalidVersionSpecificationException;
+import org.apache.maven.artifact.versioning.VersionRange;
 import org.apache.maven.model.Dependency;
 import org.chabernac.maven.repository.FileCachingRepository;
 import org.chabernac.maven.repository.InMemoryCachingRepository;
@@ -75,6 +76,25 @@ public class ResolveDependenciesTest {
     @Test
     public void resolveDependencies() {
         Set<Dependency> dependencies = resolveDependencies.getDependencies( getClass().getResourceAsStream( "/pom.xml" ) );
+
+        List<String> result = dependencies.stream().map( dependency -> GAV.fromDependency( dependency ).toString() ).collect( Collectors.toList() );
+
+        Assert.assertEquals( 10, dependencies.size() );
+        Assert.assertTrue( result.contains( "GAV [groupId=org.apiguardian, artifactId=apiguardian-api, version=1.0.0]" ) );
+        Assert.assertTrue( result.contains( "GAV [groupId=org.apache.commons, artifactId=commons-lang3, version=3.4]" ) );
+        Assert.assertTrue( result.contains( "GAV [groupId=org.junit.jupiter, artifactId=junit-jupiter-api, version=5.4.0]" ) );
+        Assert.assertTrue( result.contains( "GAV [groupId=org.junit.jupiter, artifactId=junit-jupiter-engine, version=5.4.0]" ) );
+        Assert.assertTrue( result.contains( "GAV [groupId=org.junit.platform, artifactId=junit-platform-commons, version=1.4.0]" ) );
+        Assert.assertTrue( result.contains( "GAV [groupId=org.junit.platform, artifactId=junit-platform-engine, version=1.4.0]" ) );
+        Assert.assertTrue( result.contains( "GAV [groupId=org.apache.maven, artifactId=maven-model, version=3.3.9]" ) );
+        Assert.assertTrue( result.contains( "GAV [groupId=org.apache.maven, artifactId=maven-settings, version=3.8.4]" ) );
+        Assert.assertTrue( result.contains( "GAV [groupId=org.opentest4j, artifactId=opentest4j, version=1.1.1]" ) );
+        Assert.assertTrue( result.contains( "GAV [groupId=org.codehaus.plexus, artifactId=plexus-utils, version=3.0.22]" ) );
+    }
+    
+    @Test
+    public void resolveDependenciesWithRanges() {
+        Set<Dependency> dependencies = resolveDependencies.getDependencies( getClass().getResourceAsStream( "/maven-dependencies-range.pom.xml" ) );
 
         List<String> result = dependencies.stream().map( dependency -> GAV.fromDependency( dependency ).toString() ).collect( Collectors.toList() );
 
@@ -193,5 +213,11 @@ public class ResolveDependenciesTest {
         Assert.assertTrue( result.contains( "Dependency {groupId=org.jetbrains.kotlin, artifactId=kotlin-stdlib, version=1.4.10, type=jar}" ) );
         Assert.assertTrue( result.contains( "Dependency {groupId=org.jetbrains.kotlin, artifactId=kotlin-stdlib-common, version=1.4.0, type=jar}" ) );
         Assert.assertTrue( result.contains( "Dependency {groupId=org.jetbrains, artifactId=annotations, version=13.0, type=jar}" ) );
+    }
+    
+    @Test
+    public void testRange() throws InvalidVersionSpecificationException {
+        VersionRange range = VersionRange.createFromVersionSpec("[3.0.0,4.0.0)");
+        System.out.println(range.getRecommendedVersion());
     }
 }
