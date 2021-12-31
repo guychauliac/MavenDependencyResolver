@@ -32,6 +32,6 @@ public class LocalInMemoryRepository implements IRepository {
 
     @Override
     public Optional<Metadata> getMetaData(String groupId, String artifactId) {
-        throw new UnsupportedOperationException("get metadata is not supported in LocalInMemoryRepository");
+        return Optional.empty();
     }
 }

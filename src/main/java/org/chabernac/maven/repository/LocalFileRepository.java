@@ -75,6 +75,6 @@ public class LocalFileRepository implements IRepository {
 
     @Override
     public Optional<Metadata> getMetaData(String groupId, String artifactId) {
-        throw new UnsupportedOperationException("get metadata is not supported in LocalFileRepo");
+        return Optional.empty();
     }
 }
